@@ -1,0 +1,16 @@
+datasource db {
+  provider = "mysql"
+  url      = "mysql://root:@localhost:3306/sigap_it"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Contoh model tabel awal untuk ngetes
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,10 @@
+# Mengabaikan folder library raksasa (Biar gak tembus 10k lagi)
+node_modules/
+
+# Mengabaikan folder hasil kompilasi/build backend & frontend
+dist/
+.next/
+
+# Mengabaikan file konfigurasi rahasia/lokal
+.env
+.env.local
