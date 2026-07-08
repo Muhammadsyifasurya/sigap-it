@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -16,25 +17,32 @@ export class UsersService {
   // C = CREATE (Registrasi / Tambah Karyawan)
   // ==========================================
   async create(createUserDto: CreateUserDto) {
-    // Cek apakah email sudah terdaftar di database biar gak bentrok
+    // A. Cek apakah email sudah terdaftar
     const emailExists = await this.prisma.user.findUnique({
       where: { email: createUserDto.email },
     });
 
     if (emailExists) {
       throw new ConflictException(
-        `Email ${createUserDto.email} sudah dipakai karyawan lain, bre!`,
+        `Email ${createUserDto.email} sudah dipakai, bre!`,
       );
     }
 
-    // Eksekusi simpan ke MySQL via Prisma
+    // B. JALANKAN PROSES JURUS ENKRIPSI DI SINI 😎
+    const saltRound = 10; // Standar keamanan industri
+    const hashedPassword = await bcrypt.hash(createUserDto.password, saltRound);
+
+    // C. Eksekusi simpan ke MySQL via Prisma dengan password yang sudah di-hash
     const newUser = await this.prisma.user.create({
-      data: createUserDto,
+      data: {
+        ...createUserDto,
+        password: hashedPassword, // <--- Timpa password polos dengan yang sudah di-hash!
+      },
     });
 
     return {
       success: true,
-      message: 'User baru berhasil didaftarkan ke sistem! 👤✨',
+      message: 'User baru berhasil didaftarkan dengan aman! 👤✨',
       data: newUser,
     };
   }
