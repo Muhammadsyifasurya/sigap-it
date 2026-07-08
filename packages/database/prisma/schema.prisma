@@ -1,16 +1,244 @@
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:@localhost:3306/sigap_it"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
-// Contoh model tabel awal untuk ngetes
+// =======================================================
+// === 1. CORE & USER MANAGEMENT                       ===
+// =======================================================
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @db.VarChar(255) // Super Admin, IT Governance, Staff
+  users User[]
+
+  @@map("roles")
+}
+
+model Department {
+  id    Int    @id @default(autoincrement())
+  name  String @db.VarChar(255) // SDM & TI, Keuangan, dll
+  users User[]
+
+  @@map("departments")
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
+  id                  Int                  @id @default(autoincrement())
+  name                String               @db.VarChar(255)
+  email               String               @unique @db.VarChar(255)
+  password            String               @db.VarChar(255)
+  roleId              Int                  @map("role_id")
+  role                Role                 @relation(fields: [roleId], references: [id])
+  departmentId        Int                  @map("department_id")
+  department          Department           @relation(fields: [departmentId], references: [id])
+
+  // Relasi Balik
+  applications        MsApplication[]
+  documents           Document[]
+  documentHistories   DocumentHistory[]
+  maturityAssessments MaturityAssessment[]
+  itAssets            ItAsset[]
+  assetHandovers      AssetHandover[]      @relation("HandoverUser")
+  createdHandovers    AssetHandover[]      @relation("HandoverCreator")
+  itRisks             ItRisk[]
+  itIncidents         ItIncident[]
+  rkapRealizations    RkapRealization[]
+
+  @@map("users")
+}
+
+model MsApplication {
+  id               Int               @id @default(autoincrement())
+  name             String            @db.VarChar(255)
+  description      String?           @db.Text
+  status           String?           @db.VarChar(255) // Active, Maintenance, Deprecated
+  ownerId          Int               @map("owner_id")
+  owner            User              @relation(fields: [ownerId], references: [id])
+  rkapRealizations RkapRealization[]
+
+  @@map("ms_applications")
+}
+
+// =======================================================
+// === 2. MODUL 1: DOCUMENT TRACKER (SIGAP IT / MANTAP) ===
+// =======================================================
+
+model Document {
+  id                Int                @id @default(autoincrement())
+  docNumber         String             @unique @map("doc_number") @db.VarChar(255)
+  title             String             @db.VarChar(255)
+  level             String?            @db.VarChar(255) // Level 1: Policy, Level 2: Standard, Level 3: SOP...
+  currentVersion    String             @default("v1.0") @map("current_version") @db.VarChar(255)
+  status            String?            @db.VarChar(255) // Draft, Active, Need_Review, Archived
+  filePath          String?            @map("file_path") @db.VarChar(255)
+  publishDate       DateTime?          @map("publish_date") @db.Date
+  expiryDate        DateTime?          @map("expiry_date") @db.Date
+  createdBy         Int                @map("created_by")
+  creator           User               @relation(fields: [createdBy], references: [id])
+  histories         DocumentHistory[]
+  maturityEvidences MaturityEvidence[]
+
+  @@map("documents")
+}
+
+model DocumentHistory {
+  id                Int       @id @default(autoincrement())
+  documentId        Int       @map("document_id")
+  document          Document  @relation(fields: [documentId], references: [id])
+  version           String    @db.VarChar(255)
+  changeDescription String?   @map("change_description") @db.Text
+  filePath          String?   @map("file_path") @db.VarChar(255)
+  updatedBy         Int       @map("updated_by")
+  updater           User      @relation(fields: [updatedBy], references: [id])
+  createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+
+  @@map("document_histories")
+}
+
+// =======================================================
+// === 3. MODUL 2: IT MATURITY & ASSESSMENT (COBIT/ITMA)===
+// =======================================================
+
+model MaturityAssessment {
+  id            Int                @id @default(autoincrement())
+  year          Int
+  frameworkName String             @map("framework_name") @db.VarChar(255) // COBIT 2019, ITMA, dll
+  domainCode    String?            @map("domain_code") @db.VarChar(255) // Misal: EDM01, APO12, BAI03
+  processName   String             @map("process_name") @db.VarChar(255)
+  currentLevel  Decimal            @map("current_level") @db.Decimal(3, 2)
+  targetLevel   Decimal            @map("target_level") @db.Decimal(3, 2)
+  gapScore      Decimal            @map("gap_score") @db.Decimal(3, 2)
+  notes         String?            @db.Text
+  updatedBy     Int                @map("updated_by")
+  updater       User               @relation(fields: [updatedBy], references: [id])
+  updatedAt     DateTime?          @updatedAt @map("updated_at") @db.Timestamp(0)
+  evidences     MaturityEvidence[]
+
+  @@map("maturity_assessments")
+}
+
+model MaturityEvidence {
+  id           Int                @id @default(autoincrement())
+  assessmentId Int                @map("assessment_id")
+  assessment   MaturityAssessment @relation(fields: [assessmentId], references: [id])
+  documentId   Int?               @map("document_id")
+  document     Document?          @relation(fields: [documentId], references: [id])
+  description  String             @db.Text
+  filePath     String?            @map("file_path") @db.VarChar(255)
+
+  @@map("maturity_evidences")
+}
+
+// =======================================================
+// === 4. MODUL 3: IT ASSET MANAGEMENT (E-BAST)        ===
+// =======================================================
+
+model ItAsset {
+  id             Int             @id @default(autoincrement())
+  assetTag       String          @unique @map("asset_tag") @db.VarChar(255)
+  serialNumber   String          @unique @map("serial_number") @db.VarChar(255)
+  brand          String          @db.VarChar(255) // Lenovo, Apple, dll
+  model          String          @db.VarChar(255) // ThinkPad X1, MacBook Air, dll
+  type           String?         @db.VarChar(255) // Laptop, PC, Tablet, Smartphone
+  hardwareTier   String?         @map("hardware_tier") @db.VarChar(255) // Tier Developer, Tier Executive, Tier Admin
+  purchaseDate   DateTime?       @map("purchase_date") @db.Date
+  status         String?         @db.VarChar(255) // Active, In_Stock, Maintenance...
+  currentUserId  Int?            @map("current_user_id")
+  currentUser    User?           @relation(fields: [currentUserId], references: [id])
+  assetHandovers AssetHandover[]
+
+  @@map("it_assets")
+}
+
+model AssetHandover {
+  id             Int       @id @default(autoincrement())
+  handoverNumber String    @unique @map("handover_number") @db.VarChar(255) // Nomor Berita Acara (E-BAST)
+  assetId        Int       @map("asset_id")
+  asset          ItAsset   @relation(fields: [assetId], references: [id])
+  userId         Int       @map("user_id") // Penerima perangkat
+  user           User      @relation("HandoverUser", fields: [userId], references: [id])
+  handoverDate   DateTime  @map("handover_date") @db.Date
+  returnDate     DateTime? @map("return_date") @db.Date
+  status         String?   @db.VarChar(255) // Active, Returned
+  notes          String?   @db.Text
+  evidenceFile   String?   @map("evidence_file") @db.VarChar(255)
+  createdBy      Int       @map("created_by") // Petugas IT Gov/Asset
+  creator        User      @relation("HandoverCreator", fields: [createdBy], references: [id])
+
+  @@map("asset_handovers")
+}
+
+// =======================================================
+// === 5. MODUL 4: IT RISK & INCIDENT LOG              ===
+// =======================================================
+
+model ItRisk {
+  id             Int       @id @default(autoincrement())
+  riskCode       String    @unique @map("risk_code") @db.VarChar(255) // R-001, R-002
+  title          String    @db.VarChar(255)
+  description    String?   @db.Text
+  likelihood     Int?
+  impact         Int?
+  riskScore      Int?      @map("risk_score")
+  riskStatus     String?   @map("risk_status") @db.VarChar(255)
+  mitigationPlan String?   @map("mitigation_plan") @db.Text
+  dueDate        DateTime? @map("due_date") @db.Date
+  picId          Int       @map("pic_id")
+  pic            User      @relation(fields: [picId], references: [id])
+  status         String?   @db.VarChar(255) // Open, In_Progress, Closed
+
+  @@map("it_risks")
+}
+
+model ItIncident {
+  id              Int       @id @default(autoincrement())
+  incidentNumber  String    @unique @map("incident_number") @db.VarChar(255)
+  title           String    @db.VarChar(255)
+  description     String    @db.Text
+  rootCause       String?   @map("root_cause") @db.Text
+  downtimeMinutes Int       @default(0) @map("downtime_minutes")
+  incidentDate    DateTime  @map("incident_date") @db.Timestamp(0)
+  status          String?   @db.VarChar(255) // Open, Investigating, Resolved
+  reportedBy      Int       @map("reported_by")
+  reporter        User      @relation(fields: [reportedBy], references: [id])
+
+  @@map("it_incidents")
+}
+
+// =======================================================
+// === 6. MODUL 5: IT INVESTMENT & RKAP MONITORING     ===
+// =======================================================
+
+model RkapBudget {
+  id              Int               @id @default(autoincrement())
+  year            Int
+  code            String            @unique @db.VarChar(255) // Kode COA/Akun Anggaran
+  name            String            @db.VarChar(255)
+  type            String?           @db.VarChar(255) // CAPEX, OPEX
+  allocatedAmount Decimal           @map("allocated_amount") @db.Decimal(15, 2)
+  remainingAmount Decimal           @map("remaining_amount") @db.Decimal(15, 2)
+  realizations    RkapRealization[]
+
+  @@map("rkap_budgets")
+}
+
+model RkapRealization {
+  id              Int           @id @default(autoincrement())
+  rkapBudgetId    Int           @map("rkap_budget_id")
+  rkapBudget      RkapBudget    @relation(fields: [rkapBudgetId], references: [id])
+  applicationId   Int?          @map("application_id")
+  application     MsApplication? @relation(fields: [applicationId], references: [id])
+  description     String        @db.Text
+  amount          Decimal       @db.Decimal(15, 2)
+  transactionDate DateTime      @map("transaction_date") @db.Date
+  evidenceFile    String?       @map("evidence_file") @db.VarChar(255)
+  inputBy         Int           @map("input_by")
+  inputter        User          @relation(fields: [inputBy], references: [id])
+
+  @@map("rkap_realizations")
 }
