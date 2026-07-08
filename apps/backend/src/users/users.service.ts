@@ -1,26 +1,119 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  // 1. Suntik PrismaService ke dalam constructor
+  constructor(private prisma: PrismaService) {}
+
+  // ==========================================
+  // C = CREATE (Registrasi / Tambah Karyawan)
+  // ==========================================
+  async create(createUserDto: CreateUserDto) {
+    // Cek apakah email sudah terdaftar di database biar gak bentrok
+    const emailExists = await this.prisma.user.findUnique({
+      where: { email: createUserDto.email },
+    });
+
+    if (emailExists) {
+      throw new ConflictException(
+        `Email ${createUserDto.email} sudah dipakai karyawan lain, bre!`,
+      );
+    }
+
+    // Eksekusi simpan ke MySQL via Prisma
+    const newUser = await this.prisma.user.create({
+      data: createUserDto,
+    });
+
+    return {
+      success: true,
+      message: 'User baru berhasil didaftarkan ke sistem! 👤✨',
+      data: newUser,
+    };
   }
 
-  findAll() {
-    return `This action returns all users`;
+  // ==========================================
+  // R = READ ALL (Ambil Semua Karyawan + Role & Dept)
+  // ==========================================
+  async findAll() {
+    const result = await this.prisma.user.findMany({
+      include: {
+        role: true, // <--- Sekali jentik, data Role langsung ikut ketarik!
+        department: true, // <--- Sekali jentik, data Department langsung nongol!
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Seluruh data karyawan berhasil ditarik!',
+      data: result,
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  // ==========================================
+  // R = READ ONE (Ambil 1 Karyawan Berdasarkan ID)
+  // ==========================================
+  async findOne(id: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        role: true,
+        department: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User dengan ID #${id} gak ketemu, bre!`);
+    }
+
+    return {
+      success: true,
+      message: `Data detail User ID #${id} berhasil ditemukan!`,
+      data: user,
+    };
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  // ==========================================
+  // U = UPDATE (Edit Data Karyawan)
+  // ==========================================
+  async update(id: number, updateUserDto: UpdateUserDto) {
+    // Pastikan user-nya ada dulu di DB
+    await this.findOne(id);
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id },
+      data: updateUserDto,
+    });
+
+    return {
+      success: true,
+      message: `Data User ID #${id} sukses diperbarui, mantap!`,
+      data: updatedUser,
+    };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  // ==========================================
+  // D = DELETE (Hapus Karyawan dari Sistem)
+  // ==========================================
+  async remove(id: number) {
+    // Pastikan user-nya ada dulu di DB
+    await this.findOne(id);
+
+    await this.prisma.user.delete({
+      where: { id },
+    });
+
+    return {
+      success: true,
+      message: `User ID #${id} resmi didelete dari Docker! 🗑️`,
+      data: null,
+    };
   }
 }
