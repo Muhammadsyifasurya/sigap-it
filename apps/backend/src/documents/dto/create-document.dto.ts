@@ -1,4 +1,9 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsDateString,
+} from 'class-validator';
 
 export class CreateDocumentDto {
   @IsString()
@@ -20,4 +25,12 @@ export class CreateDocumentDto {
   @IsString()
   @IsOptional()
   status?: string;
+
+  @IsDateString()
+  @IsOptional()
+  publishDate?: string;
+
+  @IsDateString()
+  @IsOptional()
+  expiryDate?: string;
 }

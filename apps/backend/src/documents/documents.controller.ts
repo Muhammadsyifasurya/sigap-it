@@ -28,7 +28,6 @@ export class DocumentsController {
   @UseInterceptors(
     FileInterceptor('file', {
       // 2. JINAKKAN ESLINT TEPAT DI BARIS UNTUK PROPERTY STORAGE 🤫
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       storage: diskStorage({
         destination: './uploads', // File fisik bakal tersimpan aman di folder ini
         filename: (req, file, callback) => {

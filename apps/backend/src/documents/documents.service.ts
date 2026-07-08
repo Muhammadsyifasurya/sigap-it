@@ -23,6 +23,15 @@ export class DocumentsService {
         currentVersion: createDocumentDto.currentVersion || 'v1.0',
         status: createDocumentDto.status || 'DRAFT',
         filePath: filePath,
+
+        // Ambil data tanggal dari DTO jika user menginputkannya dari luar
+        publishDate: createDocumentDto.publishDate
+          ? new Date(createDocumentDto.publishDate)
+          : null,
+        expiryDate: createDocumentDto.expiryDate
+          ? new Date(createDocumentDto.expiryDate)
+          : null,
+
         creator: {
           connect: { id: 2 },
         },
