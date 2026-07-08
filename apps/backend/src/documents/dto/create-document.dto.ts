@@ -1,11 +1,23 @@
-import { Prisma } from '@prisma/client';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateDocumentDto {
-  docNumber: string;
-  title: string;
+  @IsString()
+  @IsNotEmpty()
+  docNumber!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  title!: string;
+
+  @IsString()
+  @IsOptional()
   level?: string;
+
+  @IsString()
+  @IsOptional()
   currentVersion?: string;
+
+  @IsString()
+  @IsOptional()
   status?: string;
-  filePath?: string;
-  creator: Prisma.UserCreateNestedOneWithoutDocumentsInput;
 }

@@ -7,14 +7,31 @@ import { UpdateDocumentDto } from './dto/update-document.dto';
 export class DocumentsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createDocumentDto: CreateDocumentDto) {
+  async create(
+    createDocumentDto: CreateDocumentDto,
+    file: Express.Multer.File,
+  ) {
+    // 2. AMBIL JALUR STRUKTUR FOLDER TEMPAT FILE DISIMPAN (misal: uploads/doc-xxx.pdf)
+    const filePath = file ? file.path : '';
+
+    // 3. PETAKAN FIELD SECARA MANUAL BIAR TS & PRISMA BISA BACA DENGAN JELAS
     const result = await this.prisma.document.create({
-      data: createDocumentDto,
+      data: {
+        title: createDocumentDto.title,
+        docNumber: createDocumentDto.docNumber,
+        level: createDocumentDto.level || 'REGULASI',
+        currentVersion: createDocumentDto.currentVersion || 'v1.0',
+        status: createDocumentDto.status || 'DRAFT',
+        filePath: filePath,
+        creator: {
+          connect: { id: 2 },
+        },
+      },
     });
 
     return {
       success: true,
-      message: 'Dokumen berhasil dibuat, mantap!',
+      message: 'Dokumen regulasi beserta file fisiknya berhasil disimpan! 📄🚀',
       data: result,
     };
   }

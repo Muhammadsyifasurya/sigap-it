@@ -11,6 +11,7 @@
     "dev:backend": "npm run start:dev -w apps/backend"
   },
   "devDependencies": {
+    "@types/multer": "^2.2.0",
     "@types/node": "^26.1.1"
   }
 }
