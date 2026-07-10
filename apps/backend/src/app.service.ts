@@ -4,7 +4,7 @@ import { PrismaService } from './prisma/prisma.service';
 @Injectable()
 export class AppService {
   // 1. Suntik kunci pas Prisma ke sini
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getHello() {
     // 2. Kita tes ambil data tabel "roles" dari dalam Docker

@@ -74,20 +74,37 @@ export class DocumentsService {
   }
 
   async update(id: number, updateDocumentDto: UpdateDocumentDto) {
+    // 1. Pastikan dokumennya emang ada di database
     await this.findOne(id);
 
+    // 2. Copy data dari DTO ke dalam objek baru yang tipenya aman (Prisma Input)
+    const updateData: any = { ...updateDocumentDto };
+
+    // 3. LOGIKA OTOMATIS: Jika status di-update menjadi ACTIVE (Dokumen Sah)
+    if (updateDocumentDto.status === 'ACTIVE') {
+      const today = new Date();
+      const nextYear = new Date();
+      nextYear.setFullYear(today.getFullYear() + 1); // Otomatis nambah 1 tahun masa berlaku
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      updateData.publishDate = today;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      updateData.expiryDate = nextYear;
+    }
+
+    // 4. Eksekusi update ke MySQL via Prisma
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const result = await this.prisma.document.update({
       where: { id },
-      data: updateDocumentDto,
+      data: updateData,
     });
 
     return {
       success: true,
-      message: `Dokumen ID #${id} berhasil diperbarui, mantap!`,
+      message: `Dokumen ID #${id} berhasil diperbarui dan status disinkronisasikan! 🔄🔥`,
       data: result,
     };
   }
-
   async remove(id: number) {
     await this.findOne(id);
 
