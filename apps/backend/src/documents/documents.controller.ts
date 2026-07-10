@@ -9,6 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -17,6 +18,7 @@ import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { AuthGuard } from '../auth/auth.guard';
+import { documentFilter } from '../utils/file-upload.util';
 
 @UseGuards(AuthGuard)
 @Controller('documents') // Ini berarti endpoint URL-nya nanti: localhost:4000/documents
@@ -37,7 +39,8 @@ export class DocumentsController {
           const ext = extname(file.originalname);
           callback(null, `doc-${uniqueSuffix}${ext}`);
         },
-      }), // <--- HAPUS 'as StorageEngine' DI SINI, CUKUP TUTUP KURUNG SAJA!
+      }),
+      fileFilter: documentFilter,
     }),
   )
   async create(
@@ -49,8 +52,8 @@ export class DocumentsController {
   }
 
   @Get()
-  async findAll() {
-    return await this.documentsService.findAll();
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.documentsService.findAll(page, limit);
   }
 
   @Get(':id')

@@ -50,18 +50,34 @@ export class UsersService {
   // ==========================================
   // R = READ ALL (Ambil Semua Karyawan + Role & Dept)
   // ==========================================
-  async findAll() {
-    const result = await this.prisma.user.findMany({
-      include: {
-        role: true, // <--- Sekali jentik, data Role langsung ikut ketarik!
-        department: true, // <--- Sekali jentik, data Department langsung nongol!
-      },
-    });
+  async findAll(page: string = '1', limit: string = '10') {
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
+    const skip = (pageNum - 1) * limitNum;
+
+    const [result, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where: { isActive: true }, // Hanya ambil yang aktif
+        skip,
+        take: limitNum,
+        include: {
+          role: true,
+          department: true,
+        },
+      }),
+      this.prisma.user.count({ where: { isActive: true } }),
+    ]);
 
     return {
       success: true,
       message: 'Seluruh data karyawan berhasil ditarik!',
       data: result,
+      meta: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
     };
   }
 
@@ -108,19 +124,21 @@ export class UsersService {
   }
 
   // ==========================================
-  // D = DELETE (Hapus Karyawan dari Sistem)
+  // D = DELETE (Hapus Karyawan dari Sistem - Soft Delete)
   // ==========================================
   async remove(id: number) {
     // Pastikan user-nya ada dulu di DB
     await this.findOne(id);
 
-    await this.prisma.user.delete({
+    // SOFT DELETE: Jangan hapus datanya, cukup matikan statusnya!
+    await this.prisma.user.update({
       where: { id },
+      data: { isActive: false },
     });
 
     return {
       success: true,
-      message: `User ID #${id} resmi didelete dari Docker! 🗑️`,
+      message: `User ID #${id} resmi di-nonaktifkan (Soft Delete)! Histori aman. 🗑️`,
       data: null,
     };
   }

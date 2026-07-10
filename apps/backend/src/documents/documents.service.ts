@@ -45,13 +45,31 @@ export class DocumentsService {
     };
   }
 
-  async findAll() {
-    const result = await this.prisma.document.findMany();
+  async findAll(page: string = '1', limit: string = '10') {
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
+    const skip = (pageNum - 1) * limitNum;
+
+    const [documents, total] = await this.prisma.$transaction([
+      this.prisma.document.findMany({
+        skip,
+        take: limitNum,
+        include: {
+          creator: { select: { name: true, department: { select: { name: true } } } },
+        },
+      }),
+      this.prisma.document.count(),
+    ]);
 
     return {
       success: true,
-      message: 'Semua data dokumen berhasil ditarik!',
-      data: result,
+      data: documents,
+      meta: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
     };
   }
 

@@ -32,13 +32,14 @@ model User {
   name                String               @db.VarChar(255)
   email               String               @unique @db.VarChar(255)
   password            String               @db.VarChar(255)
+  isActive            Boolean              @default(true) @map("is_active")
   roleId              Int                  @map("role_id")
   role                Role                 @relation(fields: [roleId], references: [id])
   departmentId        Int                  @map("department_id")
   department          Department           @relation(fields: [departmentId], references: [id])
 
   // Relasi Balik
-  applications        MsApplication[]
+  auditActionPlans    AuditActionPlan[]
   documents           Document[]
   documentHistories   DocumentHistory[]
   maturityAssessments MaturityAssessment[]
@@ -46,22 +47,43 @@ model User {
   assetHandovers      AssetHandover[]      @relation("HandoverUser")
   createdHandovers    AssetHandover[]      @relation("HandoverCreator")
   itRisks             ItRisk[]
-  itIncidents         ItIncident[]
+  reportedTickets     HelpdeskTicket[]     @relation("ReportedTickets")
+  assignedTickets     HelpdeskTicket[]     @relation("AssignedTickets")
   rkapRealizations    RkapRealization[]
+  
+  // Modul 8: IT Project
+  managedProjects     ItProject[]
 
   @@map("users")
 }
 
-model MsApplication {
-  id               Int               @id @default(autoincrement())
-  name             String            @db.VarChar(255)
-  description      String?           @db.Text
-  status           String?           @db.VarChar(255) // Active, Maintenance, Deprecated
-  ownerId          Int               @map("owner_id")
-  owner            User              @relation(fields: [ownerId], references: [id])
-  rkapRealizations RkapRealization[]
+model AuditFinding {
+  id              Int               @id @default(autoincrement())
+  findingCode     String            @unique @map("finding_code") @db.VarChar(255)
+  title           String            @db.VarChar(255)
+  description     String            @db.Text
+  auditorName     String            @map("auditor_name") @db.VarChar(255)
+  riskLevel       String            @map("risk_level") @db.VarChar(50) // HIGH, MEDIUM, LOW
+  status          String            @db.VarChar(50) // OPEN, IN_PROGRESS, CLOSED
+  issueDate       DateTime          @default(now()) @map("issue_date") @db.Timestamp(0)
+  actionPlans     AuditActionPlan[]
 
-  @@map("ms_applications")
+  @@map("audit_findings")
+}
+
+model AuditActionPlan {
+  id                Int          @id @default(autoincrement())
+  findingId         Int          @map("finding_id")
+  finding           AuditFinding @relation(fields: [findingId], references: [id])
+  actionDescription String       @map("action_description") @db.Text
+  picId             Int          @map("pic_id")
+  pic               User         @relation(fields: [picId], references: [id])
+  targetDate        DateTime     @map("target_date") @db.Date
+  status            String       @default("PENDING") @db.VarChar(50) // PENDING, COMPLETED
+  evidenceFile      String?      @map("evidence_file") @db.VarChar(255)
+  completedAt       DateTime?    @map("completed_at") @db.Date
+
+  @@map("audit_action_plans")
 }
 
 // =======================================================
@@ -195,19 +217,30 @@ model ItRisk {
   @@map("it_risks")
 }
 
-model ItIncident {
+model HelpdeskTicket {
   id              Int       @id @default(autoincrement())
-  incidentNumber  String    @unique @map("incident_number") @db.VarChar(255)
+  ticketNumber    String    @unique @map("ticket_number") @db.VarChar(255) // TICK-2026-001
   title           String    @db.VarChar(255)
   description     String    @db.Text
-  rootCause       String?   @map("root_cause") @db.Text
-  downtimeMinutes Int       @default(0) @map("downtime_minutes")
-  incidentDate    DateTime  @map("incident_date") @db.Timestamp(0)
-  status          String?   @db.VarChar(255) // Open, Investigating, Resolved
+  ticketType      String    @map("ticket_type") @db.VarChar(50) // INCIDENT, SERVICE_REQUEST
+  priority        String    @db.VarChar(50) // HIGH, MEDIUM, LOW
+  status          String    @db.VarChar(50) // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  
   reportedBy      Int       @map("reported_by")
-  reporter        User      @relation(fields: [reportedBy], references: [id])
+  reporter        User      @relation("ReportedTickets", fields: [reportedBy], references: [id])
+  
+  assignedTo      Int?      @map("assigned_to")
+  assignee        User?     @relation("AssignedTickets", fields: [assignedTo], references: [id])
 
-  @@map("it_incidents")
+  downtimeMinutes Int?      @map("downtime_minutes") // Opsional, hanya untuk INCIDENT
+  rootCause       String?   @map("root_cause") @db.Text // Opsional, hanya untuk INCIDENT
+  resolutionNotes String?   @map("resolution_notes") @db.Text // Penjelasan perbaikan
+
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
+  resolvedAt      DateTime? @map("resolved_at") @db.Timestamp(0)
+
+  @@map("helpdesk_tickets")
 }
 
 // =======================================================
@@ -231,8 +264,6 @@ model RkapRealization {
   id              Int           @id @default(autoincrement())
   rkapBudgetId    Int           @map("rkap_budget_id")
   rkapBudget      RkapBudget    @relation(fields: [rkapBudgetId], references: [id])
-  applicationId   Int?          @map("application_id")
-  application     MsApplication? @relation(fields: [applicationId], references: [id])
   description     String        @db.Text
   amount          Decimal       @db.Decimal(15, 2)
   transactionDate DateTime      @map("transaction_date") @db.Date
@@ -241,4 +272,39 @@ model RkapRealization {
   inputter        User          @relation(fields: [inputBy], references: [id])
 
   @@map("rkap_realizations")
+}
+
+// =======================================================
+// === MODUL 7: IT VENDOR & CONTRACT MANAGEMENT        ===
+// =======================================================
+model ItVendor {
+  id              Int       @id @default(autoincrement())
+  name            String    @db.VarChar(255)
+  serviceType     String    @map("service_type") @db.VarChar(255) // ISP, Software House, Cloud Provider
+  contactPerson   String?   @map("contact_person") @db.VarChar(255)
+  phoneNumber     String?   @map("phone_number") @db.VarChar(50)
+  contractNumber  String    @unique @map("contract_number") @db.VarChar(255)
+  contractStart   DateTime  @map("contract_start") @db.Date
+  contractEnd     DateTime  @map("contract_end") @db.Date
+  slaPercentage   Decimal?  @map("sla_percentage") @db.Decimal(5, 2) // 99.99
+  status          String    @db.VarChar(50) // ACTIVE, EXPIRED, RENEWING
+
+  @@map("it_vendors")
+}
+
+// =======================================================
+// === MODUL 8: IT PROJECT PORTFOLIO (PPM)             ===
+// =======================================================
+model ItProject {
+  id              Int       @id @default(autoincrement())
+  projectName     String    @map("project_name") @db.VarChar(255)
+  description     String    @db.Text
+  managerId       Int       @map("manager_id") // Project Manager (IT)
+  manager         User      @relation(fields: [managerId], references: [id])
+  startDate       DateTime  @map("start_date") @db.Date
+  endDate         DateTime  @map("end_date") @db.Date
+  progress        Int       @default(0) // 0 - 100%
+  status          String    @db.VarChar(50) // PLANNING, IN_PROGRESS, COMPLETED, ON_HOLD
+  
+  @@map("it_projects")
 }
