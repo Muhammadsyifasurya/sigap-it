@@ -28,13 +28,19 @@ export class HelpdeskService {
   // ==========================================
   // 2. DAFTAR TIKET (UNTUK DASHBOARD)
   // ==========================================
-  async findAllTickets(page: string = '1', limit: string = '10') {
+  async findAllTickets(page: string = '1', limit: string = '10', user?: any) {
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 10;
     const skip = (pageNum - 1) * limitNum;
+    
+    // Filter by Role (Jika Role == 3 / Karyawan Biasa, cuma bisa lihat tiket sendiri)
+    const whereClause = (user && user.roleId === 3) 
+      ? { reportedBy: user.sub } 
+      : {};
 
     const [tickets, total] = await this.prisma.$transaction([
       this.prisma.helpdeskTicket.findMany({
+        where: whereClause,
         skip,
         take: limitNum,
         include: {
@@ -43,7 +49,7 @@ export class HelpdeskService {
         },
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.helpdeskTicket.count(),
+      this.prisma.helpdeskTicket.count({ where: whereClause }),
     ]);
 
     return {

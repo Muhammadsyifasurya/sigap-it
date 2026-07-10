@@ -8,8 +8,8 @@ async function main() {
   // 1. Tanam Data Master Roles (Pakai angka Int)
   const roles = [
     { id: 1, name: "Super Admin" },
-    { id: 2, name: "IT Governance" },
-    { id: 3, name: "Staff" },
+    { id: 2, name: "Admin" },
+    { id: 3, name: "Karyawan" },
   ];
 
   for (const role of roles) {
@@ -36,6 +36,46 @@ async function main() {
     });
   }
   console.log("✅ Data Master Departments sukses ditanam!");
+
+  // 3. Tanam Data Users
+  const users = [
+    {
+      id: 1,
+      name: "Super Admin (Bos IT)",
+      email: "superadmin@bumn.co.id",
+      password: "$2b$10$yPE8sJDbWQngUWeZ5Nh2..5PLSfhf4yNmr6FD2SEvJwPj/jv.SCVK", // password123
+      roleId: 1,
+      departmentId: 1, // SDM & TI
+      isActive: true,
+    },
+    {
+      id: 2,
+      name: "Admin Helpdesk",
+      email: "admin@bumn.co.id",
+      password: "$2b$10$yPE8sJDbWQngUWeZ5Nh2..5PLSfhf4yNmr6FD2SEvJwPj/jv.SCVK", // password123
+      roleId: 2,
+      departmentId: 1, // SDM & TI
+      isActive: true,
+    },
+    {
+      id: 3,
+      name: "Karyawan Keuangan",
+      email: "karyawan@bumn.co.id",
+      password: "$2b$10$yPE8sJDbWQngUWeZ5Nh2..5PLSfhf4yNmr6FD2SEvJwPj/jv.SCVK", // password123
+      roleId: 3,
+      departmentId: 2, // Keuangan
+      isActive: true,
+    }
+  ];
+
+  for (const user of users) {
+    await prisma.user.upsert({
+      where: { id: user.id },
+      update: user,
+      create: user,
+    });
+  }
+  console.log("✅ Data Users sukses ditanam!");
 }
 
 main()

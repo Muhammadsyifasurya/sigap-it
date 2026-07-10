@@ -27,10 +27,11 @@ export class HelpdeskController {
     return this.helpdeskService.createTicket(createTicketDto, reportedById);
   }
 
-  // 2. Daftar semua tiket (Untuk Dashboard Admin/IT)
+  // 2. Daftar semua tiket (Untuk Dashboard Admin/IT & Karyawan)
   @Get('tickets')
-  findAllTickets(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.helpdeskService.findAllTickets(page, limit);
+  findAllTickets(@Query('page') page?: string, @Query('limit') limit?: string, @Request() req?: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return this.helpdeskService.findAllTickets(page, limit, req.user);
   }
 
   @Get('tickets/:id')
