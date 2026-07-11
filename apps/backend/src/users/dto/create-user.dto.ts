@@ -1,7 +1,9 @@
 import {
   IsEmail,
+  IsInt,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   MinLength,
 } from 'class-validator';
@@ -40,4 +42,11 @@ export class CreateUserDto {
     },
   )
   departmentId: number;
+
+  @IsOptional()
+  @IsNumber(
+    {},
+    { message: 'Position ID harus berupa angka (ID dari tabel positions)!' },
+  )
+  positionId?: number;
 }

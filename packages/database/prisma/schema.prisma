@@ -27,6 +27,14 @@ model Department {
   @@map("departments")
 }
 
+model Position {
+  id    Int    @id @default(autoincrement())
+  name  String @db.VarChar(255) // Manager IT, Staff Keuangan, Direktur
+  users User[]
+
+  @@map("positions")
+}
+
 model User {
   id                  Int                  @id @default(autoincrement())
   name                String               @db.VarChar(255)
@@ -37,6 +45,8 @@ model User {
   role                Role                 @relation(fields: [roleId], references: [id])
   departmentId        Int                  @map("department_id")
   department          Department           @relation(fields: [departmentId], references: [id])
+  positionId          Int?                 @map("position_id")
+  position            Position?            @relation(fields: [positionId], references: [id])
 
   // Relasi Balik
   auditActionPlans    AuditActionPlan[]

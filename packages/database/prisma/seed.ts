@@ -10,6 +10,7 @@ async function main() {
     { id: 1, name: "Super Admin" },
     { id: 2, name: "Admin" },
     { id: 3, name: "Karyawan" },
+    { id: 4, name: "Teknisi" }, // Peran khusus untuk IT Support lapangan
   ];
 
   for (const role of roles) {
@@ -37,6 +38,23 @@ async function main() {
   }
   console.log("✅ Data Master Departments sukses ditanam!");
 
+  // 2.5 Tanam Data Master Positions (Jabatan)
+  const positions = [
+    { id: 1, name: "Manager IT" },
+    { id: 2, name: "IT Support / Teknisi" },
+    { id: 3, name: "Staff Keuangan" },
+    { id: 4, name: "Direktur Utama" },
+  ];
+
+  for (const pos of positions) {
+    await prisma.position.upsert({
+      where: { id: pos.id },
+      update: {},
+      create: pos,
+    });
+  }
+  console.log("✅ Data Master Positions sukses ditanam!");
+
   // 3. Tanam Data Users
   const users = [
     {
@@ -46,6 +64,7 @@ async function main() {
       password: "$2b$10$yPE8sJDbWQngUWeZ5Nh2..5PLSfhf4yNmr6FD2SEvJwPj/jv.SCVK", // password123
       roleId: 1,
       departmentId: 1, // SDM & TI
+      positionId: 1, // Manager IT
       isActive: true,
     },
     {
@@ -55,6 +74,7 @@ async function main() {
       password: "$2b$10$yPE8sJDbWQngUWeZ5Nh2..5PLSfhf4yNmr6FD2SEvJwPj/jv.SCVK", // password123
       roleId: 2,
       departmentId: 1, // SDM & TI
+      positionId: 2, // IT Support
       isActive: true,
     },
     {
@@ -64,6 +84,17 @@ async function main() {
       password: "$2b$10$yPE8sJDbWQngUWeZ5Nh2..5PLSfhf4yNmr6FD2SEvJwPj/jv.SCVK", // password123
       roleId: 3,
       departmentId: 2, // Keuangan
+      positionId: 3, // Staff Keuangan
+      isActive: true,
+    },
+    {
+      id: 4,
+      name: "Teknisi Jaringan",
+      email: "teknisi@bumn.co.id",
+      password: "$2b$10$yPE8sJDbWQngUWeZ5Nh2..5PLSfhf4yNmr6FD2SEvJwPj/jv.SCVK", // password123
+      roleId: 4, // Teknisi
+      departmentId: 1, // SDM & TI
+      positionId: 2, // IT Support / Teknisi
       isActive: true,
     }
   ];

@@ -11,7 +11,7 @@ import * as bcrypt from 'bcrypt';
 @Injectable()
 export class UsersService {
   // 1. Suntik PrismaService ke dalam constructor
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   // ==========================================
   // C = CREATE (Registrasi / Tambah Karyawan)
@@ -50,22 +50,29 @@ export class UsersService {
   // ==========================================
   // R = READ ALL (Ambil Semua Karyawan + Role & Dept)
   // ==========================================
-  async findAll(page: string = '1', limit: string = '10') {
+  async findAll(page: string = '1', limit: string = '10', roleId?: string) {
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 10;
     const skip = (pageNum - 1) * limitNum;
 
+    const whereClause: any = { isActive: true };
+    if (roleId) {
+      const roleIds = roleId.split(',').map(Number);
+      whereClause.roleId = { in: roleIds };
+    }
+
     const [result, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
-        where: { isActive: true }, // Hanya ambil yang aktif
+        where: whereClause,
         skip,
         take: limitNum,
         include: {
           role: true,
           department: true,
+          position: true,
         },
       }),
-      this.prisma.user.count({ where: { isActive: true } }),
+      this.prisma.user.count({ where: whereClause }),
     ]);
 
     return {
@@ -90,6 +97,7 @@ export class UsersService {
       include: {
         role: true,
         department: true,
+        position: true,
       },
     });
 

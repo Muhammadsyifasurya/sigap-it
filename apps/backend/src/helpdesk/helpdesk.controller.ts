@@ -22,7 +22,7 @@ import { AuthGuard } from '../auth/auth.guard';
 @UseGuards(AuthGuard)
 @Controller('helpdesk')
 export class HelpdeskController {
-  constructor(private readonly helpdeskService: HelpdeskService) {}
+  constructor(private readonly helpdeskService: HelpdeskService) { }
 
   // 1. Karyawan bikin tiket
   @Post('tickets')
@@ -39,7 +39,7 @@ export class HelpdeskController {
     }),
   )
   createTicket(
-    @Body() createTicketDto: CreateTicketDto, 
+    @Body() createTicketDto: CreateTicketDto,
     @Request() req: any,
     @UploadedFile() file?: Express.Multer.File
   ) {
@@ -73,11 +73,11 @@ export class HelpdeskController {
     return this.helpdeskService.addComment(+id, userId, message);
   }
 
-  // 3. Staf IT mengambil (Assign) tiket ke dirinya sendiri
+  // 3. Staf IT mengambil (Assign) tiket ke dirinya sendiri atau ke orang lain
   @Patch('tickets/:id/assign')
-  assignTicket(@Param('id') id: string, @Request() req: any) {
+  assignTicket(@Param('id') id: string, @Body('assigneeId') bodyAssigneeId: number, @Request() req: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const assigneeId = req.user.sub as number;
+    const assigneeId = bodyAssigneeId ? Number(bodyAssigneeId) : (req.user.sub as number);
     return this.helpdeskService.assignTicket(+id, assigneeId);
   }
 

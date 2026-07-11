@@ -43,14 +43,18 @@ export const useHelpdesk = () => {
     }
   };
 
-  const assignTicket = async (id: number) => {
+  const assignTicket = async (id: number, assigneeId?: number) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      await helpdeskRepository.assignTicket(id);
-      fetchTickets();
+      await helpdeskRepository.assignTicket(id, assigneeId);
+      await fetchTickets(1, 10); // Refresh list
       return true;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal assign tiket');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 

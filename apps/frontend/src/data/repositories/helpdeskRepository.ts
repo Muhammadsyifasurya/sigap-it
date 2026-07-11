@@ -38,8 +38,8 @@ export const helpdeskRepository = {
     return response.data;
   },
 
-  assignTicket: async (id: number) => {
-    const response = await apiClient.patch<{ success: boolean; data: Ticket }>(`/helpdesk/tickets/${id}/assign`);
+  assignTicket: async (id: number, assigneeId?: number) => {
+    const response = await apiClient.patch<{ success: boolean; data: Ticket }>(`/helpdesk/tickets/${id}/assign`, { assigneeId });
     return response.data;
   },
 

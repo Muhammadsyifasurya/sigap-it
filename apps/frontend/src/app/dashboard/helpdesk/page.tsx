@@ -10,6 +10,7 @@ import { clsx } from 'clsx';
 import { useAuthStore } from '../../../store/authStore';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { apiClient } from '../../../data/apiClient';
 
 // =========================================
 // STATUS & PRIORITY HELPERS
@@ -119,6 +120,17 @@ export default function HelpdeskPage() {
   });
 
   const [commentMessage, setCommentMessage] = useState('');
+  
+  const [itStaffs, setItStaffs] = useState<any[]>([]);
+  const [selectedAssignee, setSelectedAssignee] = useState<number | ''>('');
+
+  useEffect(() => {
+    if (isDetailOpen && (user?.role?.id === 1 || user?.role?.id === 2 || user?.role?.id === 4)) {
+      apiClient.get('/users?roleId=2,4').then(res => {
+        setItStaffs(res.data.data);
+      }).catch(console.error);
+    }
+  }, [isDetailOpen, user]);
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,10 +185,13 @@ export default function HelpdeskPage() {
     }
   };
 
-  const handleAssign = async () => {
+  const handleAssign = async (assigneeId?: number) => {
     if (!selectedTicket) return;
-    const success = await assignTicket(selectedTicket.id);
-    if (success) handleOpenDetail(selectedTicket.id);
+    const success = await assignTicket(selectedTicket.id, assigneeId);
+    if (success) {
+      handleOpenDetail(selectedTicket.id);
+      setSelectedAssignee('');
+    }
   };
 
   const handleResolve = async (e: React.FormEvent) => {
@@ -410,17 +425,45 @@ export default function HelpdeskPage() {
                 ) : (
                   <div className="space-y-3">
                     <p className="text-xs text-amber-600 font-medium">Belum ada yang menangani tiket ini.</p>
-                    {(user?.role?.id === 1 || user?.role?.id === 2) && (
-                      <button onClick={handleAssign} disabled={isLoading} className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold active:scale-[0.98] transition-all">
-                        Ambil Tiket Ini
-                      </button>
+                    {(user?.role?.id === 1 || user?.role?.id === 2 || user?.role?.id === 4) && (
+                      <div className="flex flex-col gap-2 mt-2">
+                        <button onClick={() => handleAssign()} disabled={isLoading} className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold active:scale-[0.98] transition-all">
+                          Ambil Tiket Ini (Assign ke Saya)
+                        </button>
+                        
+                        <div className="flex gap-2 items-center my-1">
+                          <div className="h-px bg-slate-200 flex-1"></div>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase">Atau</span>
+                          <div className="h-px bg-slate-200 flex-1"></div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <select 
+                            value={selectedAssignee}
+                            onChange={(e) => setSelectedAssignee(Number(e.target.value))}
+                            className="flex-1 text-xs px-3 py-2.5 rounded-lg border border-slate-200 bg-white outline-none focus:border-emerald-500"
+                          >
+                            <option value="">Pilih Tim IT...</option>
+                            {itStaffs.map(staff => (
+                              <option key={staff.id} value={staff.id}>{staff.name}</option>
+                            ))}
+                          </select>
+                          <button 
+                            onClick={() => selectedAssignee && handleAssign(selectedAssignee as number)}
+                            disabled={isLoading || !selectedAssignee}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold disabled:opacity-50 transition-colors"
+                          >
+                            Assign
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
               </div>
 
               {/* Resolve Form */}
-              {selectedTicket.status === 'IN_PROGRESS' && (user?.role?.id === 1 || user?.role?.id === 2) && (
+              {selectedTicket.status === 'IN_PROGRESS' && (user?.role?.id === 1 || user?.role?.id === 2 || user?.role?.id === 4) && (
                 <form onSubmit={handleResolve} className="bg-emerald-50/70 rounded-xl p-4 space-y-3 border border-emerald-100">
                   <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-[0.15em]">Selesaikan Tiket</p>
                   <div className="grid grid-cols-2 gap-2.5">

@@ -23,8 +23,8 @@ export class UsersController {
   }
 
   @Get()
-  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.usersService.findAll(page, limit);
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string, @Query('roleId') roleId?: string) {
+    return this.usersService.findAll(page, limit, roleId);
   }
 
   @Get(':id')

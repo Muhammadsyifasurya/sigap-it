@@ -15,6 +15,7 @@ import { HelpdeskModule } from './helpdesk/helpdesk.module';
 import { VendorsModule } from './vendors/vendors.module';
 import { ProjectsModule } from './projects/projects.module';
 import { AnnouncementModule } from './announcement/announcement.module';
+import { PositionsModule } from './positions/positions.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AnnouncementModule } from './announcement/announcement.module';
     VendorsModule,
     ProjectsModule,
     AnnouncementModule,
+    PositionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
