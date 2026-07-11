@@ -120,7 +120,7 @@ export default function HelpdeskPage() {
   });
 
   const [commentMessage, setCommentMessage] = useState('');
-  
+
   const [itStaffs, setItStaffs] = useState<any[]>([]);
   const [selectedAssignee, setSelectedAssignee] = useState<number | ''>('');
 
@@ -217,7 +217,7 @@ export default function HelpdeskPage() {
 
       {/* ===== HEADER ===== */}
       <div className="flex items-center gap-3 pt-2 md:pt-0">
-        <Link href="/dashboard" className="md:hidden w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm active:scale-90 transition-transform">
+        <Link href="/teknisi-area" className="md:hidden w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm active:scale-90 transition-transform">
           <ChevronLeft className="w-5 h-5" />
         </Link>
         <div>
@@ -430,7 +430,7 @@ export default function HelpdeskPage() {
                         <button onClick={() => handleAssign()} disabled={isLoading} className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold active:scale-[0.98] transition-all">
                           Ambil Tiket Ini (Assign ke Saya)
                         </button>
-                        
+
                         <div className="flex gap-2 items-center my-1">
                           <div className="h-px bg-slate-200 flex-1"></div>
                           <span className="text-[10px] text-slate-400 font-bold uppercase">Atau</span>
@@ -438,7 +438,7 @@ export default function HelpdeskPage() {
                         </div>
 
                         <div className="flex gap-2">
-                          <select 
+                          <select
                             value={selectedAssignee}
                             onChange={(e) => setSelectedAssignee(Number(e.target.value))}
                             className="flex-1 text-xs px-3 py-2.5 rounded-lg border border-slate-200 bg-white outline-none focus:border-emerald-500"
@@ -448,7 +448,7 @@ export default function HelpdeskPage() {
                               <option key={staff.id} value={staff.id}>{staff.name}</option>
                             ))}
                           </select>
-                          <button 
+                          <button
                             onClick={() => selectedAssignee && handleAssign(selectedAssignee as number)}
                             disabled={isLoading || !selectedAssignee}
                             className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold disabled:opacity-50 transition-colors"
