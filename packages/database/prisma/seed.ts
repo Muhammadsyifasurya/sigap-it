@@ -16,7 +16,7 @@ async function main() {
   for (const role of roles) {
     await prisma.role.upsert({
       where: { id: role.id },
-      update: {},
+      update: role,
       create: role,
     });
   }
@@ -32,7 +32,7 @@ async function main() {
   for (const dept of departments) {
     await prisma.department.upsert({
       where: { id: dept.id },
-      update: {},
+      update: dept,
       create: dept,
     });
   }
@@ -49,7 +49,7 @@ async function main() {
   for (const pos of positions) {
     await prisma.position.upsert({
       where: { id: pos.id },
-      update: {},
+      update: pos,
       create: pos,
     });
   }
