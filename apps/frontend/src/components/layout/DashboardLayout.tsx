@@ -17,8 +17,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   useEffect(() => {
-    if (isHydrated && !isAuthenticated) {
-      router.push('/login');
+    if (isHydrated) {
+      if (!isAuthenticated) {
+        router.push('/login');
+      } else {
+        // Strict Role Redirection
+        const roleId = useAuthStore.getState().user?.role?.id;
+        const currentPath = window.location.pathname;
+
+        if ((roleId === 1 || roleId === 2) && !currentPath.startsWith('/admin-panel')) {
+          router.push('/admin-panel');
+        } else if (roleId === 4 && !currentPath.startsWith('/teknisi-area')) {
+          router.push('/teknisi-area');
+        } else if (roleId === 3 && !currentPath.startsWith('/dashboard')) {
+          router.push('/dashboard');
+        }
+      }
     }
   }, [isHydrated, isAuthenticated, router]);
 

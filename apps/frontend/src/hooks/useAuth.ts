@@ -55,7 +55,7 @@ export const useAuth = () => {
       };
 
       setLoginData(userData, data.access_token);
-      return true; // Berhasil login
+      return userData; // Berhasil login, return userData
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Login gagal, periksa email & password.');
       return false; // Gagal login

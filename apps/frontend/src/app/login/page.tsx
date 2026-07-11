@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { Lock, Mail, ArrowRight } from 'lucide-react';
 
@@ -13,15 +13,22 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(email, password);
-    if (success) {
-      router.push('/dashboard');
+    const user = await login(email, password);
+    if (user) {
+      const roleId = (user as any).role?.id;
+      if (roleId === 1 || roleId === 2) {
+        router.push('/admin-panel');
+      } else if (roleId === 4) {
+        router.push('/teknisi-area');
+      } else {
+        router.push('/dashboard');
+      }
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-emerald-600 via-emerald-700 to-emerald-900 relative overflow-hidden">
-      
+
       {/* Background decoration circles (BRImo/Wondr style) */}
       <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-white/5 blur-xl" />
       <div className="absolute top-1/4 -left-20 w-64 h-64 rounded-full bg-cyan-400/10 blur-2xl" />
@@ -48,7 +55,7 @@ export default function LoginPage() {
 
       {/* Bottom card (sheet-style like Livin/BRImo) */}
       <div className="bg-white rounded-t-[2rem] px-6 pt-8 pb-10 relative z-10 shadow-[0_-20px_60px_rgba(0,0,0,0.15)]">
-        
+
         <div className="max-w-sm mx-auto">
           <h2 className="text-xl font-extrabold text-slate-800 mb-1">Masuk ke Akun</h2>
           <p className="text-sm text-slate-500 font-medium mb-6">Gunakan email korporat untuk login.</p>
@@ -102,7 +109,7 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-          
+
           <p className="mt-8 text-center text-xs font-medium text-slate-400">
             © {new Date().getFullYear()} PT LPP Agro Nusantara • v1.0
           </p>

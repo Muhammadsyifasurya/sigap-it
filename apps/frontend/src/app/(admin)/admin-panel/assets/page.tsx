@@ -8,9 +8,9 @@ import {
   Tag, Hash, Calendar, User, Building2, Shield
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { useAuthStore } from '../../../store/authStore';
-import { useAssets } from '../../../hooks/useAssets';
-import { ItAsset, CreateAssetDto } from '../../../domain/models/Asset';
+import { useAuthStore } from '@/store/authStore';
+import { useAssets } from '@/hooks/useAssets';
+import { ItAsset, CreateAssetDto } from '@/domain/models/Asset';
 import Link from 'next/link';
 
 // =========================================

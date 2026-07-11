@@ -17,15 +17,19 @@ import {
 import { clsx } from 'clsx';
 import { useAuthStore } from '../../store/authStore';
 
-const allMenuItems = [
-  { name: 'Beranda', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'SOP & Dokumen', path: '/dashboard/documents', icon: FileText },
-  { name: 'Audit', path: '/dashboard/audit', icon: ShieldAlert },
-  { name: 'Aset', path: '/dashboard/assets', icon: Laptop },
-  { name: 'Anggaran', path: '/dashboard/budgets', icon: Wallet },
-  { name: 'Helpdesk', path: '/dashboard/helpdesk', icon: LifeBuoy },
-  { name: 'Vendor', path: '/dashboard/vendors', icon: Users },
-  { name: 'Proyek', path: '/dashboard/projects', icon: Briefcase },
+const baseMenuItems = [
+  { name: 'Beranda', path: '', icon: LayoutDashboard },
+  { name: 'Helpdesk', path: '/helpdesk', icon: LifeBuoy },
+];
+
+const adminMenuItems = [
+  ...baseMenuItems,
+  { name: 'SOP & Dokumen', path: '/documents', icon: FileText },
+  { name: 'Audit', path: '/audit', icon: ShieldAlert },
+  { name: 'Aset', path: '/assets', icon: Laptop },
+  { name: 'Anggaran', path: '/budgets', icon: Wallet },
+  { name: 'Vendor', path: '/vendors', icon: Users },
+  { name: 'Proyek', path: '/projects', icon: Briefcase },
 ];
 
 export default function Sidebar() {
@@ -33,13 +37,25 @@ export default function Sidebar() {
   const { user } = useAuthStore();
 
   const isKaryawan = user?.role?.id === 3;
+  const isTeknisi = user?.role?.id === 4;
+  const isAdmin = user?.role?.id === 1 || user?.role?.id === 2;
 
-  const menuItems = isKaryawan
-    ? allMenuItems.filter(item => ['Beranda', 'Helpdesk'].includes(item.name))
-    : allMenuItems;
+  let basePath = '/dashboard';
+  if (isAdmin) basePath = '/admin-panel';
+  if (isTeknisi) basePath = '/teknisi-area';
+
+  // Choose base menu list
+  let activeMenu = baseMenuItems;
+  if (isAdmin) activeMenu = adminMenuItems;
+  // Teknisi only needs Beranda and Helpdesk for now
+
+  const menuItems = activeMenu.map(item => ({
+    ...item,
+    path: item.path === '' ? basePath : `${basePath}${item.path}`
+  }));
 
   // Mobile: limit to 4 items + "More" for admin, show all for karyawan
-  const mobileItems = isKaryawan ? menuItems : menuItems.slice(0, 4);
+  const mobileItems = isAdmin ? menuItems.slice(0, 4) : menuItems;
 
   return (
     <>
@@ -65,7 +81,7 @@ export default function Sidebar() {
         <nav className="flex-1 overflow-y-auto py-5 px-3 space-y-0.5">
           <p className="px-3 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">Menu</p>
           {menuItems.map((item) => {
-            const isActive = pathname === item.path || (pathname.startsWith(`${item.path}/`) && item.path !== '/dashboard');
+            const isActive = pathname === item.path || (pathname.startsWith(`${item.path}/`) && item.path !== basePath);
             const Icon = item.icon;
             return (
               <Link

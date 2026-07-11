@@ -25,11 +25,11 @@ import {
   ToggleLeft,
   ToggleRight
 } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { useNotifications } from '../../hooks/useNotifications';
-import { useHelpdesk } from '../../hooks/useHelpdesk';
-import { useAnnouncement } from '../../hooks/useAnnouncement';
-import { useAssets } from '../../hooks/useAssets';
+import { useAuthStore } from '@/store/authStore';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useHelpdesk } from '@/hooks/useHelpdesk';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
+import { useAssets } from '@/hooks/useAssets';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 

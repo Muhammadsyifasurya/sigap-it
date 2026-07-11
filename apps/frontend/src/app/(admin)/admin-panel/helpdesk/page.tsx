@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useHelpdesk } from '../../../hooks/useHelpdesk';
+import { useHelpdesk } from '@/hooks/useHelpdesk';
 import {
   Plus, Search, X, AlertTriangle, Clock, CheckCircle2,
   ChevronRight, LifeBuoy, Zap, ArrowDownCircle, ChevronLeft
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { useAuthStore } from '../../../store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { apiClient } from '../../../data/apiClient';
+import { apiClient } from '@/data/apiClient';
 
 // =========================================
 // STATUS & PRIORITY HELPERS
