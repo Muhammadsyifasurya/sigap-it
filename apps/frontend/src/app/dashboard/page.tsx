@@ -29,6 +29,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useHelpdesk } from '../../hooks/useHelpdesk';
 import { useAnnouncement } from '../../hooks/useAnnouncement';
+import { useAssets } from '../../hooks/useAssets';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const [currentTip, setCurrentTip] = useState(0);
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { tickets, fetchTickets, isLoading, createTicket } = useHelpdesk();
+  const { assets, fetchAssets } = useAssets();
   // Modal & Panel states
   const [isClient, setIsClient] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -53,6 +55,7 @@ export default function DashboardPage() {
   // Sync form when announcement loaded
   useEffect(() => {
     if (announcement) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAnnounceForm({ title: announcement.title, message: announcement.message, isActive: announcement.isActive });
     }
   }, [announcement]);
@@ -126,6 +129,7 @@ export default function DashboardPage() {
   ];
 
   // Pick 3 tips for the current day
+  // eslint-disable-next-line react-hooks/purity
   const dayIndex = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
   const groupIndex = dayIndex % 4; // We have 4 groups
   const todaysTips = masterTips.slice(groupIndex * 3, groupIndex * 3 + 3);
@@ -138,6 +142,7 @@ export default function DashboardPage() {
   }, []);
 
   // Time-based greeting
+  // eslint-disable-next-line react-hooks/purity
   const hour = new Date().getHours();
   const greeting = hour < 11 ? 'Selamat Pagi' : hour < 15 ? 'Selamat Siang' : hour < 18 ? 'Selamat Sore' : 'Selamat Malam';
 
@@ -147,8 +152,15 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsClient(true);
-  }, []);
+
+    // Fetch real data for dashboard stats
+    if (user) {
+      fetchTickets(1, 100);
+      fetchAssets(1, 100);
+    }
+  }, [user, fetchTickets, fetchAssets]);
 
   if (!isClient) return null;
 
@@ -461,10 +473,30 @@ export default function DashboardPage() {
             {/* Stat Cards (BRImo balance card style) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mt-5">
               {[
-                { title: 'Tiket Terbuka', value: '12', sub: '4 High Priority', icon: LifeBuoy, gradient: 'from-red-50 to-orange-50', iconColor: 'text-red-500', valueColor: 'text-red-600' },
-                { title: 'Sisa Anggaran', value: 'Rp 1.2M', sub: 'Dari Rp 5M', icon: Wallet, gradient: 'from-green-50 to-emerald-50', iconColor: 'text-green-500', valueColor: 'text-green-600' },
-                { title: 'Temuan Audit', value: '3', sub: '1 Open', icon: ShieldAlert, gradient: 'from-amber-50 to-yellow-50', iconColor: 'text-amber-500', valueColor: 'text-amber-600' },
-                { title: 'Aset Aktif', value: '245', sub: '12 maintenance', icon: Laptop, gradient: 'from-blue-50 to-cyan-50', iconColor: 'text-blue-500', valueColor: 'text-blue-600' },
+                {
+                  title: 'Tiket Terbuka',
+                  value: tickets.filter(t => t.status === 'OPEN').length.toString(),
+                  sub: `${tickets.filter(t => t.status === 'OPEN' && t.priority === 'HIGH').length} High Priority`,
+                  icon: LifeBuoy, gradient: 'from-red-50 to-orange-50', iconColor: 'text-red-500', valueColor: 'text-red-600'
+                },
+                {
+                  title: 'Sisa Anggaran',
+                  value: 'Belum Aktif',
+                  sub: 'Modul Anggaran',
+                  icon: Wallet, gradient: 'from-green-50 to-emerald-50', iconColor: 'text-green-500', valueColor: 'text-green-600'
+                },
+                {
+                  title: 'Sedang Diproses',
+                  value: tickets.filter(t => t.status === 'IN_PROGRESS').length.toString(),
+                  sub: 'Tiket Berjalan',
+                  icon: ShieldAlert, gradient: 'from-amber-50 to-yellow-50', iconColor: 'text-amber-500', valueColor: 'text-amber-600'
+                },
+                {
+                  title: 'Aset Aktif',
+                  value: assets.filter(a => a.status === 'IN_USE' || a.status === 'AVAILABLE').length.toString(),
+                  sub: `${assets.filter(a => a.status === 'MAINTENANCE').length} maintenance`,
+                  icon: Laptop, gradient: 'from-blue-50 to-cyan-50', iconColor: 'text-blue-500', valueColor: 'text-blue-600'
+                },
               ].map((stat) => (
                 <div key={stat.title} className="bg-white rounded-2xl p-4 md:p-5 border border-slate-100 shadow-sm">
                   <div className={`w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center mb-3`}>
@@ -579,23 +611,41 @@ export default function DashboardPage() {
         )}
       </div>
       {/* ===== NOTIFICATION PANEL ===== */}
-      {isNotifOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex justify-end" onClick={() => setIsNotifOpen(false)}>
-          <div className="w-full md:w-96 bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-slate-100">
-              <div>
-                <h2 className="text-lg font-extrabold text-slate-800">Notifikasi</h2>
-                <p className="text-xs text-slate-400 font-medium">{unreadCount} pesan belum dibaca</p>
-              </div>
-              <div className="flex items-center gap-3">
-                {unreadCount > 0 && (
-                  <button onClick={markAllAsRead} className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full hover:bg-emerald-100">Tandai semua dibaca</button>
-                )}
-                <button onClick={() => setIsNotifOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+      <div
+        className={clsx(
+          "fixed inset-0 z-[100] flex justify-end transition-all duration-300",
+          isNotifOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
+        )}
+      >
+        <div
+          className={clsx(
+            "absolute inset-0 bg-slate-900/20 backdrop-blur-sm transition-opacity duration-300",
+            isNotifOpen ? "opacity-100" : "opacity-0"
+          )}
+          onClick={() => setIsNotifOpen(false)}
+        />
+        <div
+          className={clsx(
+            "relative w-full max-w-sm bg-white h-full shadow-2xl flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            isNotifOpen ? "translate-x-0" : "translate-x-full"
+          )}
+        >
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
+            <div className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-emerald-600" />
+              <h2 className="text-lg font-extrabold text-slate-800">Notifikasi</h2>
             </div>
+            <div className="flex items-center gap-3">
+              {unreadCount > 0 && (
+                <button onClick={markAllAsRead} className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full hover:bg-emerald-100">Tandai semua dibaca</button>
+              )}
+              <button onClick={() => setIsNotifOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-hidden flex flex-col bg-slate-50/50">
 
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {notifications.length === 0 ? (
@@ -627,111 +677,123 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      )}
+      </div>
       {/* ===== BOTTOM SHEET: CREATE TICKET (Dashboard Version) ===== */}
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center" onClick={() => setIsCreateOpen(false)}>
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" />
+      <div
+        className={clsx(
+          "fixed inset-0 z-[100] flex items-end md:items-center justify-center transition-all duration-300",
+          isCreateOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
+        )}
+        onClick={() => setIsCreateOpen(false)}
+      >
+        {/* Backdrop */}
+        <div
+          className={clsx(
+            "absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity duration-300",
+            isCreateOpen ? "opacity-100" : "opacity-0"
+          )}
+        />
 
-          {/* Sheet */}
-          <div
-            className="relative bg-white rounded-t-[1.75rem] md:rounded-2xl w-full md:max-w-md max-h-[88vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Drag handle (mobile) */}
-            <div className="md:hidden flex justify-center pt-3 pb-0.5">
-              <div className="w-9 h-1 bg-slate-200 rounded-full" />
-            </div>
-
-            <div className="p-5 pb-3 flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-extrabold text-slate-800">Buat Tiket</h2>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">Laporkan kendala IT kamu</p>
-              </div>
-              <button onClick={() => setIsCreateOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateSubmit} className="px-5 pb-8 space-y-4">
-              {/* Ticket Type Selector */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-0.5">Jenis Tiket</label>
-                <div className="grid grid-cols-2 gap-2.5 mt-2">
-                  {[
-                    { value: 'INCIDENT', label: 'Insiden', sub: 'Gangguan & Error', icon: Zap, gradient: 'from-red-500 to-orange-500', border: 'border-red-200 bg-red-50/50' },
-                    { value: 'SERVICE_REQUEST', label: 'Layanan', sub: 'Permintaan Baru', icon: LifeBuoy, gradient: 'from-emerald-500 to-teal-500', border: 'border-emerald-200 bg-emerald-50/50' },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setNewTicket({ ...newTicket, ticketType: opt.value as any })}
-                      className={clsx(
-                        "p-3.5 rounded-xl border-2 text-left transition-all",
-                        newTicket.ticketType === opt.value
-                          ? opt.border
-                          : "border-slate-100 bg-white hover:bg-slate-50"
-                      )}
-                    >
-                      <div className={clsx("w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center mb-2", opt.gradient)}>
-                        <opt.icon className="w-4 h-4 text-white" strokeWidth={2} />
-                      </div>
-                      <p className="text-xs font-bold text-slate-800">{opt.label}</p>
-                      <p className="text-[10px] text-slate-400 font-medium">{opt.sub}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-0.5">Judul Keluhan</label>
-                <input required type="text" value={newTicket.title} onChange={e => setNewTicket({ ...newTicket, title: e.target.value })}
-                  className="mt-1.5 w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-slate-400 placeholder:font-medium"
-                  placeholder="Contoh: Laptop tidak bisa nyala"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-0.5">Deskripsi</label>
-                <textarea required rows={3} value={newTicket.description} onChange={e => setNewTicket({ ...newTicket, description: e.target.value })}
-                  className="mt-1.5 w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-slate-400 placeholder:font-medium resize-none"
-                  placeholder="Jelaskan detail masalahnya..."
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-0.5">Prioritas</label>
-                <div className="flex gap-2 mt-1.5">
-                  {(['LOW', 'MEDIUM', 'HIGH'] as const).map(p => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setNewTicket({ ...newTicket, priority: p })}
-                      className={clsx(
-                        "flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all",
-                        newTicket.priority === p
-                          ? p === 'HIGH' ? 'border-red-200 bg-red-50 text-red-600'
-                            : p === 'MEDIUM' ? 'border-amber-200 bg-amber-50 text-amber-600'
-                              : 'border-green-200 bg-green-50 text-green-600'
-                          : 'border-slate-100 text-slate-400 hover:bg-slate-50'
-                      )}
-                    >
-                      {p === 'LOW' ? 'Rendah' : p === 'MEDIUM' ? 'Sedang' : 'Tinggi'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button type="submit" disabled={isLoading} className="w-full py-4 mt-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-2xl font-bold text-sm shadow-lg shadow-emerald-600/25 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
-                {isLoading ? (
-                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
-                ) : 'Kirim Tiket'}
-              </button>
-            </form>
+        {/* Sheet */}
+        <div
+          className={clsx(
+            "relative bg-white rounded-t-[1.75rem] md:rounded-2xl w-full md:max-w-md max-h-[88vh] overflow-y-auto shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
+            isCreateOpen ? "translate-y-0 opacity-100 md:scale-100" : "translate-y-[100%] md:translate-y-10 opacity-0 md:scale-95"
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Drag handle (mobile) */}
+          <div className="md:hidden flex justify-center pt-3 pb-0.5">
+            <div className="w-9 h-1 bg-slate-200 rounded-full" />
           </div>
+
+          <div className="p-5 pb-3 flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-extrabold text-slate-800">Buat Tiket</h2>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">Laporkan kendala IT kamu</p>
+            </div>
+            <button onClick={() => setIsCreateOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleCreateSubmit} className="px-5 pb-8 space-y-4">
+            {/* Ticket Type Selector */}
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-0.5">Jenis Tiket</label>
+              <div className="grid grid-cols-2 gap-2.5 mt-2">
+                {[
+                  { value: 'INCIDENT', label: 'Insiden', sub: 'Gangguan & Error', icon: Zap, gradient: 'from-red-500 to-orange-500', border: 'border-red-200 bg-red-50/50' },
+                  { value: 'SERVICE_REQUEST', label: 'Layanan', sub: 'Permintaan Baru', icon: LifeBuoy, gradient: 'from-emerald-500 to-teal-500', border: 'border-emerald-200 bg-emerald-50/50' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setNewTicket({ ...newTicket, ticketType: opt.value as any })}
+                    className={clsx(
+                      "p-3.5 rounded-xl border-2 text-left transition-all",
+                      newTicket.ticketType === opt.value
+                        ? opt.border
+                        : "border-slate-100 bg-white hover:bg-slate-50"
+                    )}
+                  >
+                    <div className={clsx("w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center mb-2", opt.gradient)}>
+                      <opt.icon className="w-4 h-4 text-white" strokeWidth={2} />
+                    </div>
+                    <p className="text-xs font-bold text-slate-800">{opt.label}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">{opt.sub}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-0.5">Judul Keluhan</label>
+              <input required type="text" value={newTicket.title} onChange={e => setNewTicket({ ...newTicket, title: e.target.value })}
+                className="mt-1.5 w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-slate-400 placeholder:font-medium"
+                placeholder="Contoh: Laptop tidak bisa nyala"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-0.5">Deskripsi</label>
+              <textarea required rows={3} value={newTicket.description} onChange={e => setNewTicket({ ...newTicket, description: e.target.value })}
+                className="mt-1.5 w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-slate-400 placeholder:font-medium resize-none"
+                placeholder="Jelaskan detail masalahnya..."
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-0.5">Prioritas</label>
+              <div className="flex gap-2 mt-1.5">
+                {(['LOW', 'MEDIUM', 'HIGH'] as const).map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setNewTicket({ ...newTicket, priority: p })}
+                    className={clsx(
+                      "flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all",
+                      newTicket.priority === p
+                        ? p === 'HIGH' ? 'border-red-200 bg-red-50 text-red-600'
+                          : p === 'MEDIUM' ? 'border-amber-200 bg-amber-50 text-amber-600'
+                            : 'border-green-200 bg-green-50 text-green-600'
+                        : 'border-slate-100 text-slate-400 hover:bg-slate-50'
+                    )}
+                  >
+                    {p === 'LOW' ? 'Rendah' : p === 'MEDIUM' ? 'Sedang' : 'Tinggi'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button type="submit" disabled={isLoading} className="w-full py-4 mt-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-2xl font-bold text-sm shadow-lg shadow-emerald-600/25 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
+              {isLoading ? (
+                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+              ) : 'Kirim Tiket'}
+            </button>
+          </form>
         </div>
-      )}
+      </div>
     </div>
   );
 }

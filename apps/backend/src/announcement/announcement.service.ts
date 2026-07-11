@@ -3,13 +3,27 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AnnouncementService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getActiveAnnouncement() {
-    return this.prisma.announcement.findFirst({
+    const announcement = await this.prisma.announcement.findFirst({
       where: { isActive: true },
       orderBy: { updatedAt: 'desc' },
     });
+
+    if (!announcement) {
+      // Kembalikan data dummy/placeholder jika belum ada pengumuman sama sekali
+      return {
+        id: 0,
+        title: 'Belum ada pengumuman',
+        message: 'Tidak ada informasi penting saat ini.',
+        isActive: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
+    return announcement;
   }
 
   async upsertAnnouncement(data: { title: string; message: string; isActive: boolean }) {
