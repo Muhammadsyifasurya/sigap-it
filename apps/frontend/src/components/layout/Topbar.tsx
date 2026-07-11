@@ -3,10 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { useRouter, usePathname } from 'next/navigation';
+import { useUiStore } from '../../store/uiStore';
+import { useNotifications } from '../../hooks/useNotifications';
 import { Bell, LogOut, ChevronRight, User as UserIcon, Settings } from 'lucide-react';
 
 export default function Topbar() {
   const { user, logout } = useAuthStore();
+  const { setIsNotifOpen } = useUiStore();
+  const { unreadCount } = useNotifications();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -45,14 +49,14 @@ export default function Topbar() {
   // Generate dynamic breadcrumbs
   const generateBreadcrumbs = () => {
     if (!pathname || pathname === '/') return [{ label: 'Beranda', isLast: true }];
-    
+
     const paths = pathname.split('/').filter(Boolean);
     return paths.map((path, index) => {
       // Map known paths for better display
       let formatted = path.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
       if (path === 'admin-panel') formatted = 'Admin Panel';
       if (path === 'teknisi-area') formatted = 'Teknisi Area';
-      
+
       return {
         label: formatted,
         isLast: index === paths.length - 1
@@ -67,7 +71,7 @@ export default function Topbar() {
 
   return (
     <header className="hidden md:flex h-[72px] bg-white/80 backdrop-blur-xl border-b border-slate-200/60 items-center justify-between px-6 lg:px-10 sticky top-0 z-10 transition-all">
-      
+
       {/* Left side: Breadcrumbs & Page Context */}
       <div className="hidden md:flex flex-col justify-center">
         <div className="flex items-center gap-2 text-[13px] font-bold text-slate-400 mb-0.5">
@@ -101,9 +105,14 @@ export default function Topbar() {
       <div className="flex items-center gap-4">
 
         {/* Notifications */}
-        <button className="relative w-11 h-11 flex items-center justify-center rounded-2xl text-slate-400 hover:bg-slate-100/80 hover:text-emerald-600 transition-all active:scale-95">
+        <button
+          onClick={() => setIsNotifOpen(true)}
+          className="relative w-11 h-11 flex items-center justify-center rounded-2xl text-slate-400 hover:bg-slate-100/80 hover:text-emerald-600 transition-all active:scale-95"
+        >
           <Bell className="w-[22px] h-[22px]" strokeWidth={2.5} />
-          <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-[2.5px] ring-white"></span>
+          {unreadCount > 0 && (
+            <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-[2.5px] ring-white"></span>
+          )}
         </button>
 
         {/* Divider (desktop) */}
