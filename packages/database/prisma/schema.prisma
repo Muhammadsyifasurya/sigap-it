@@ -308,3 +308,16 @@ model ItProject {
   
   @@map("it_projects")
 }
+
+// =======================================================
+// === MODUL 9: IT BROADCAST & ANNOUNCEMENTS           ===
+// =======================================================
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(255)
+  message   String   @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("announcements")
+}

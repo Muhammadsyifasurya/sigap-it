@@ -19,11 +19,16 @@ import {
   AlertOctagon,
   FileText,
   X,
-  Zap
+  Zap,
+  Megaphone,
+  Save,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useHelpdesk } from '../../hooks/useHelpdesk';
+import { useAnnouncement } from '../../hooks/useAnnouncement';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 
@@ -32,11 +37,32 @@ export default function DashboardPage() {
   const [currentTip, setCurrentTip] = useState(0);
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { tickets, fetchTickets, isLoading, createTicket } = useHelpdesk();
+  // Modal & Panel states
   const [isClient, setIsClient] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   // Dashboard states
   const [historyTab, setHistoryTab] = useState<'Aktif' | 'Selesai'>('Aktif');
+
+  // Announcement state (Admin)
+  const { announcement, isLoading: isLoadingAnnouncement, updateAnnouncement } = useAnnouncement();
+  const [isEditingAnnounce, setIsEditingAnnounce] = useState(false);
+  const [announceForm, setAnnounceForm] = useState({ title: '', message: '', isActive: true });
+  const [isSavingAnnounce, setIsSavingAnnounce] = useState(false);
+
+  // Sync form when announcement loaded
+  useEffect(() => {
+    if (announcement) {
+      setAnnounceForm({ title: announcement.title, message: announcement.message, isActive: announcement.isActive });
+    }
+  }, [announcement]);
+
+  const handleSaveAnnouncement = async () => {
+    setIsSavingAnnounce(true);
+    await updateAnnouncement(announceForm);
+    setIsSavingAnnounce(false);
+    setIsEditingAnnounce(false);
+  };
 
   // Modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -120,6 +146,12 @@ export default function DashboardPage() {
     alert("PANIC BUTTON DITEKAN!\nMengarahkan ke form Pelaporan Darurat High Priority...");
   };
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) return null;
+
   return (
     <div className="relative min-h-screen pb-6 z-0">
 
@@ -192,16 +224,18 @@ export default function DashboardPage() {
                     <div className="flex-1 pr-4">
                       <div className="flex items-center gap-2 mb-2">
                         <p className="text-[10px] sm:text-xs font-bold text-emerald-100/80 tracking-[0.2em] uppercase">Info Layanan IT</p>
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-                        </span>
+                        {announcement?.isActive && (
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                          </span>
+                        )}
                       </div>
                       <h2 className="text-xl sm:text-2xl font-black tracking-tight leading-tight mb-2 text-white">
-                        Sistem ERP Sedang Maintenance
+                        {isLoadingAnnouncement ? 'Memuat Info...' : announcement?.isActive ? announcement.title : 'Semua Sistem Berjalan Normal'}
                       </h2>
                       <p className="text-xs sm:text-sm text-emerald-50/90 font-medium leading-relaxed max-w-[85%]">
-                        Estimasi selesai pukul 14:00 WIB. Mohon maaf atas ketidaknyamanan ini. Layanan lain beroperasi normal.
+                        {isLoadingAnnouncement ? '...' : announcement?.isActive ? announcement.message : 'Jaringan WiFi, ERP, dan layanan operasional lainnya dalam kondisi prima.'}
                       </p>
                     </div>
                     <button onClick={handlePanicButton} className="group/btn relative overflow-hidden bg-rose-500 hover:bg-rose-600 text-white p-3 sm:px-4 sm:py-2.5 rounded-xl shadow-lg shadow-rose-900/40 transition-all active:scale-95 flex items-center gap-2 border border-rose-400/50 flex-shrink-0">
@@ -213,7 +247,11 @@ export default function DashboardPage() {
                   <div className="flex items-end justify-between pt-5 border-t border-emerald-500/30">
                     <div>
                       <p className="text-[10px] font-bold text-emerald-200/60 tracking-wider mb-1 uppercase">Update Terakhir</p>
-                      <p className="text-xs font-bold text-white tracking-wide">Hari ini, 09:30 WIB</p>
+                      <p className="text-xs font-bold text-white tracking-wide">
+                        {announcement?.isActive && announcement.updatedAt
+                          ? new Date(announcement.updatedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
+                          : 'Hari ini'}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-bold text-emerald-200/60 tracking-wider mb-1 uppercase">Tiket Aktif Saya</p>
@@ -457,6 +495,57 @@ export default function DashboardPage() {
                   </Link>
                 ))}
               </div>
+            </div>
+
+            {/* Admin Announcement Settings */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-emerald-600" />
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.15em]">Pengaturan Pengumuman</p>
+                </div>
+                {!isEditingAnnounce ? (
+                  <button onClick={() => setIsEditingAnnounce(true)} className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md hover:bg-emerald-100">Ubah</button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button onClick={() => {
+                      setIsEditingAnnounce(false);
+                      if (announcement) setAnnounceForm({ title: announcement.title, message: announcement.message, isActive: announcement.isActive });
+                    }} className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md hover:bg-slate-200">Batal</button>
+                    <button onClick={handleSaveAnnouncement} disabled={isSavingAnnounce} className="text-[10px] font-bold text-white bg-emerald-600 px-2.5 py-1 rounded-md hover:bg-emerald-700 flex items-center gap-1">
+                      {isSavingAnnounce ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" /> : <Save className="w-3 h-3" />} Simpan
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {isEditingAnnounce ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 mb-1 block">Status Pengumuman</label>
+                    <button onClick={() => setAnnounceForm(prev => ({ ...prev, isActive: !prev.isActive }))} className="flex items-center gap-2">
+                      {announceForm.isActive ? <ToggleRight className="w-6 h-6 text-emerald-500" /> : <ToggleLeft className="w-6 h-6 text-slate-300" />}
+                      <span className={clsx("text-xs font-bold", announceForm.isActive ? "text-emerald-700" : "text-slate-500")}>{announceForm.isActive ? 'Aktif (Ditampilkan)' : 'Tidak Aktif (Disembunyikan)'}</span>
+                    </button>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 mb-1 block">Judul (Singkat)</label>
+                    <input type="text" value={announceForm.title} onChange={e => setAnnounceForm({ ...announceForm, title: e.target.value })} className="w-full text-xs p-2 border border-slate-200 rounded-lg outline-none focus:border-emerald-500" placeholder="Contoh: Sistem ERP Sedang Maintenance" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 mb-1 block">Pesan Detail</label>
+                    <textarea rows={2} value={announceForm.message} onChange={e => setAnnounceForm({ ...announceForm, message: e.target.value })} className="w-full text-xs p-2 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 resize-none" placeholder="Contoh: Estimasi selesai pukul 14:00 WIB..." />
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className={clsx("w-2 h-2 rounded-full", announceForm.isActive ? "bg-emerald-500" : "bg-slate-300")} />
+                    <p className="text-xs font-extrabold text-slate-700">{announceForm.isActive ? announceForm.title || '(Tanpa Judul)' : 'Tidak ada pengumuman aktif'}</p>
+                  </div>
+                  {announceForm.isActive && <p className="text-[11px] text-slate-500 font-medium pl-4">{announceForm.message || '(Tanpa Pesan)'}</p>}
+                </div>
+              )}
             </div>
 
             {/* Activity Timeline */}
