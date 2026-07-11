@@ -10,6 +10,10 @@ export interface User {
     id: number;
     name: string;
   };
+  position?: {
+    id: number;
+    name: string;
+  };
 }
 
 export interface AuthResponse {

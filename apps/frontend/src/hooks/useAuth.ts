@@ -30,33 +30,46 @@ export const useAuth = () => {
     setError(null);
     try {
       const data = await authRepository.login(email, password);
-      
+
       // Backend JWT berisi informasi payload user (sub/id, email, name, role)
       // Kita decode payload ini untuk mendapatkan data user.
       const decoded = decodeJWT(data.access_token);
-      
+
       if (!decoded) {
         throw new Error('Token tidak valid');
       }
 
-      // Mapping payload JWT ke format User Domain kita
+      // Ambil data lengkap user langsung dari database pakai token yang baru didapat
+      const { apiClient } = await import('../data/apiClient');
+      const profileResponse = await apiClient.get(`/users/${decoded.sub}`, {
+        headers: { Authorization: `Bearer ${data.access_token}` },
+      });
+
+      const fullUser = profileResponse.data.data;
+
+      // Mapping payload ke format User Domain kita
       const userData: User = {
-        id: decoded.sub,
-        name: decoded.name || 'User',
-        email: decoded.email,
+        id: fullUser.id,
+        name: fullUser.name,
+        email: fullUser.email,
         role: {
-          id: decoded.roleId || 0,
-          name: decoded.role || 'Staff',
+          id: fullUser.role?.id || decoded.roleId || 0,
+          name: fullUser.role?.name || decoded.role || 'Staff',
         },
         department: {
-          id: decoded.departmentId || 0,
-          name: decoded.department || 'Umum',
-        }
+          id: fullUser.department?.id || 0,
+          name: fullUser.department?.name || 'Umum',
+        },
+        position: fullUser.position ? {
+          id: fullUser.position.id,
+          name: fullUser.position.name,
+        } : undefined
       };
 
       setLoginData(userData, data.access_token);
       return userData; // Berhasil login, return userData
     } catch (err: any) {
+      console.error(err);
       setError(err.response?.data?.message || err.message || 'Login gagal, periksa email & password.');
       return false; // Gagal login
     } finally {
