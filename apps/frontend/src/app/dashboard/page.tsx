@@ -75,12 +75,16 @@ export default function DashboardPage() {
     ticketType: 'INCIDENT' | 'SERVICE_REQUEST';
     priority: 'LOW' | 'MEDIUM' | 'HIGH';
     ticketNumber: string;
+    category: string;
+    file: File | null;
   }>({
     title: '',
     description: '',
     ticketType: 'INCIDENT',
     priority: 'MEDIUM',
-    ticketNumber: ''
+    ticketNumber: '',
+    category: 'Hardware',
+    file: null,
   });
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -96,7 +100,9 @@ export default function DashboardPage() {
         description: '',
         ticketType: 'INCIDENT',
         priority: 'MEDIUM',
-        ticketNumber: ''
+        ticketNumber: '',
+        category: 'Hardware',
+        file: null,
       });
       fetchTickets();
     }
@@ -764,6 +770,19 @@ export default function DashboardPage() {
             </div>
 
             <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-0.5">Kategori</label>
+              <select required value={newTicket.category} onChange={e => setNewTicket({ ...newTicket, category: e.target.value })}
+                className="mt-1.5 w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 appearance-none"
+              >
+                <option value="Hardware">Hardware (Laptop, Printer, dll)</option>
+                <option value="Software">Software (ERP, Office, dll)</option>
+                <option value="Jaringan">Jaringan (WiFi, Internet)</option>
+                <option value="Akun/Akses">Akun/Akses (Lupa Password, Request Akses)</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
+            </div>
+
+            <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-0.5">Prioritas</label>
               <div className="flex gap-2 mt-1.5">
                 {(['LOW', 'MEDIUM', 'HIGH'] as const).map(p => (
@@ -784,6 +803,19 @@ export default function DashboardPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-0.5">Lampiran (Opsional)</label>
+              <input type="file" accept="image/png, image/jpeg, application/pdf"
+                onChange={e => {
+                  if (e.target.files?.[0]) {
+                    setNewTicket({ ...newTicket, file: e.target.files[0] });
+                  }
+                }}
+                className="mt-1.5 w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+              />
+              {newTicket.file && <p className="mt-1 text-[10px] font-medium text-emerald-600 ml-1">File terpilih: {newTicket.file.name}</p>}
             </div>
 
             <button type="submit" disabled={isLoading} className="w-full py-4 mt-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-2xl font-bold text-sm shadow-lg shadow-emerald-600/25 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">

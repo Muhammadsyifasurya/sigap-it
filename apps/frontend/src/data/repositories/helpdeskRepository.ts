@@ -1,5 +1,5 @@
 import { apiClient } from '../apiClient';
-import { TicketResponse, Ticket, CreateTicketDto, UpdateTicketDto } from '../../domain/models/Helpdesk';
+import { TicketResponse, Ticket, CreateTicketDto, UpdateTicketDto, TicketComment } from '../../domain/models/Helpdesk';
 
 export const helpdeskRepository = {
   getTickets: async (page: number = 1, limit: number = 10): Promise<TicketResponse> => {
@@ -15,7 +15,26 @@ export const helpdeskRepository = {
   },
 
   createTicket: async (data: CreateTicketDto) => {
-    const response = await apiClient.post<{ success: boolean; data: Ticket }>('/helpdesk/tickets', data);
+    let payload: any = data;
+    let headers = {};
+    if (data.file) {
+      const formData = new FormData();
+      formData.append('ticketNumber', data.ticketNumber);
+      formData.append('title', data.title);
+      formData.append('description', data.description);
+      formData.append('ticketType', data.ticketType);
+      formData.append('priority', data.priority);
+      if (data.category) formData.append('category', data.category);
+      formData.append('file', data.file);
+      payload = formData;
+      headers = { 'Content-Type': 'multipart/form-data' };
+    }
+    const response = await apiClient.post<{ success: boolean; data: Ticket }>('/helpdesk/tickets', payload, { headers });
+    return response.data;
+  },
+
+  addComment: async (ticketId: number, message: string) => {
+    const response = await apiClient.post<{ success: boolean; data: TicketComment }>(`/helpdesk/tickets/${ticketId}/comments`, { message });
     return response.data;
   },
 

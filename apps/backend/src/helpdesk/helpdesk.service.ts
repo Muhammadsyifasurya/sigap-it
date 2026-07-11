@@ -26,6 +26,27 @@ export class HelpdeskService {
   }
 
   // ==========================================
+  // 1.5. TAMBAH KOMENTAR
+  // ==========================================
+  async addComment(ticketId: number, userId: number, message: string) {
+    const comment = await this.prisma.ticketComment.create({
+      data: {
+        ticketId,
+        userId,
+        message,
+      },
+      include: {
+        user: { select: { name: true, roleId: true } }
+      }
+    });
+    return {
+      success: true,
+      message: 'Komentar berhasil dikirim!',
+      data: comment,
+    };
+  }
+
+  // ==========================================
   // 2. DAFTAR TIKET (UNTUK DASHBOARD)
   // ==========================================
   async findAllTickets(page: string = '1', limit: string = '10', user?: any) {
@@ -70,6 +91,12 @@ export class HelpdeskService {
       include: {
         reporter: { select: { name: true, email: true, department: { select: { name: true } } } },
         assignee: { select: { name: true } },
+        comments: {
+          include: {
+            user: { select: { name: true, roleId: true } }
+          },
+          orderBy: { createdAt: 'asc' }
+        }
       },
     });
     if (!ticket) throw new NotFoundException(`Tiket #${id} gak ketemu!`);

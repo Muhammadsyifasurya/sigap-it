@@ -49,6 +49,7 @@ model User {
   itRisks             ItRisk[]
   reportedTickets     HelpdeskTicket[]     @relation("ReportedTickets")
   assignedTickets     HelpdeskTicket[]     @relation("AssignedTickets")
+  ticketComments      TicketComment[]
   rkapRealizations    RkapRealization[]
   
   // Modul 8: IT Project
@@ -222,6 +223,8 @@ model HelpdeskTicket {
   ticketNumber    String    @unique @map("ticket_number") @db.VarChar(255) // TICK-2026-001
   title           String    @db.VarChar(255)
   description     String    @db.Text
+  category        String    @default("UMUM") @db.VarChar(100) // Hardware, Software, Jaringan, Lainnya
+  attachmentUrl   String?   @map("attachment_url") @db.VarChar(255)
   ticketType      String    @map("ticket_type") @db.VarChar(50) // INCIDENT, SERVICE_REQUEST
   priority        String    @db.VarChar(50) // HIGH, MEDIUM, LOW
   status          String    @db.VarChar(50) // OPEN, IN_PROGRESS, RESOLVED, CLOSED
@@ -236,11 +239,25 @@ model HelpdeskTicket {
   rootCause       String?   @map("root_cause") @db.Text // Opsional, hanya untuk INCIDENT
   resolutionNotes String?   @map("resolution_notes") @db.Text // Penjelasan perbaikan
 
+  comments        TicketComment[]
+
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamp(0)
   resolvedAt      DateTime? @map("resolved_at") @db.Timestamp(0)
 
   @@map("helpdesk_tickets")
+}
+
+model TicketComment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int      @map("ticket_id")
+  ticket    HelpdeskTicket @relation(fields: [ticketId], references: [id])
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  message   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  @@map("ticket_comments")
 }
 
 // =======================================================

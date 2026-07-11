@@ -65,6 +65,16 @@ export const useHelpdesk = () => {
     }
   };
 
+  const addComment = async (ticketId: number, message: string) => {
+    try {
+      await helpdeskRepository.addComment(ticketId, message);
+      return true;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Gagal mengirim komentar');
+      return false;
+    }
+  };
+
   return {
     tickets,
     total,
@@ -75,5 +85,6 @@ export const useHelpdesk = () => {
     createTicket,
     assignTicket,
     resolveTicket,
+    addComment,
   };
 };

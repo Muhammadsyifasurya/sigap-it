@@ -22,4 +22,12 @@ export class CreateTicketDto {
   @IsNotEmpty()
   @IsIn(['HIGH', 'MEDIUM', 'LOW'])
   priority: string;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @IsString()
+  @IsOptional()
+  attachmentUrl?: string;
 }

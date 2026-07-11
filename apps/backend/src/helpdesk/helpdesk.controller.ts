@@ -8,7 +8,12 @@ import {
   UseGuards,
   Request,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import { HelpdeskService } from './helpdesk.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
@@ -21,9 +26,27 @@ export class HelpdeskController {
 
   // 1. Karyawan bikin tiket
   @Post('tickets')
-  createTicket(@Body() createTicketDto: CreateTicketDto, @Request() req: any) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, callback) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          callback(null, `ticket-${uniqueSuffix}${ext}`);
+        },
+      }),
+    }),
+  )
+  createTicket(
+    @Body() createTicketDto: CreateTicketDto, 
+    @Request() req: any,
+    @UploadedFile() file?: Express.Multer.File
+  ) {
     const reportedById = req.user.sub as number;
+    if (file) {
+      createTicketDto.attachmentUrl = `/uploads/${file.filename}`;
+    }
     return this.helpdeskService.createTicket(createTicketDto, reportedById);
   }
 
@@ -37,6 +60,17 @@ export class HelpdeskController {
   @Get('tickets/:id')
   findOneTicket(@Param('id') id: string) {
     return this.helpdeskService.findOneTicket(+id);
+  }
+
+  // 2.5 Tambah Komentar Tiket
+  @Post('tickets/:id/comments')
+  addComment(
+    @Param('id') id: string,
+    @Body('message') message: string,
+    @Request() req: any
+  ) {
+    const userId = req.user.sub as number;
+    return this.helpdeskService.addComment(+id, userId, message);
   }
 
   // 3. Staf IT mengambil (Assign) tiket ke dirinya sendiri
